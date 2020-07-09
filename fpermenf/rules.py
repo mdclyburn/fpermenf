@@ -68,7 +68,6 @@ def apply(rules, paths, dry_run):
                 header_printed = True
 
             if not state_matches and not dry_run:
-                pass
-                # (StateApply[state])(path, states[state])
+                (StateApply[state])(path, states[state])
             elif not state_matches and dry_run:
                 print(f"  {state}: {states[state]}")
