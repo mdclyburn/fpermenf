@@ -1,6 +1,6 @@
 import os
 
-import attr
+from . import attr
 
 class Rule:
     def __init__(self, description, match={}, state={}):

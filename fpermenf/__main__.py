@@ -2,7 +2,7 @@ import argparse
 import os
 from os import path
 
-import rules
+from . import rules
 
 def main():
     parser = argparse.ArgumentParser(description='Apply ownership/permissions to files.')
