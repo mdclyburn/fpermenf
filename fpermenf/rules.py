@@ -36,11 +36,14 @@ StateApply = {
     "mode": (lambda path, req: attr.setPermission(path, req))
 }
 
+def __state_supported(name):
+    return name in StateChecks.keys()
+
 def load(path):
     import json
     with open(path) as rulesFile:
         rules = json.load(rulesFile)
-    return list(map(lambda j: Rule(j['description'], j['match'], j['state']), rules))
+    return [Rule(j['description'], j['match'], j['state']) for j in rules]
 
 def applicable(stateFileDir, dirToCheck):
     # The path's rules should be used if removing the state file's file name
@@ -48,26 +51,30 @@ def applicable(stateFileDir, dirToCheck):
     # os.path.commonpath(stateFilePathWithoutFile, currentFilePath) returns.
     return os.path.commonprefix([stateFileDir, dirToCheck]) == stateFileDir
 
+
+def merge_state(rules):
+    merged_state = {}
+    for r in rules:
+        merged_state.update(r.state)
+
+    return merged_state
+
 def apply(rules, paths, dry_run):
     for path in paths:
-        # Merge the states to get what the state of the file should be.
-        states = {}
-        for rule in rules:
-            if rule.matches(path):
-                for k in rule.state.keys():
-                    states[k] = rule.state[k]
+        states = merge_state([r for r in rules if r.matches(path)])
 
         # Apply states to the file as necessary.
         header_printed = False
-        for state in states.keys():
-            if state not in StateChecks.keys():
+        for state_name in states.keys():
+            if not __state_supported(state_name):
+                print(f"  {state_name}: warning: not recognized")
                 continue
-            state_matches = (StateChecks[state])(path, states[state])
+            state_matches = (StateChecks[state_name])(path, states[state_name])
             if not state_matches and not header_printed:
                 print(f"{path}:")
                 header_printed = True
 
             if not state_matches and not dry_run:
-                (StateApply[state])(path, states[state])
+                (StateApply[state_name])(path, states[state_name])
             elif not state_matches and dry_run:
-                print(f"  {state}: {states[state]}")
+                print(f"  {state_name}: {states[state_name]}")
